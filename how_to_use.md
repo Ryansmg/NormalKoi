@@ -18,7 +18,7 @@ C-style 입출력은 사용할 수 없습니다.
   - `readInt`, `readLong`, `readDouble`, `readLDouble`, `readStr`, `readChar`
   
 
-- `read(Type)(end: char)`
+- `read{Type}(end: char)`
   - 값 하나를 입력받는 함수입니다. 값 뒤에 와야 할 문자를 명시할 수 있습니다.
   
 
