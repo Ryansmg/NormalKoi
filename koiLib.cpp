@@ -1,10 +1,10 @@
 /**
  * koiLib by gs24055
- * Version 1.13 (260313)
+ * Version 1.14 (260313)
  */
 
 // 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
-#define INPUT_FORMAT_CHECK true
+#define INPUT_FORMAT_CHECK false
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
 #define CHECK_NON_EOL_EOF true
@@ -303,14 +303,13 @@ namespace koi_lib {
         ((args = impl::convert_sv<Args>(tokens[i++])), ...);
     }
 
-    std::string readToken(char expected_end) {
-        return std::string(impl::readToken(expected_end));
-    }
-
     void readEof() {
 #if INPUT_FORMAT_CHECK
 #ifndef LOCAL
         assert(impl::is_eof());
+#if MAKE_INPUT_FILE
+        std::exit(0);  // 정답 계산 등을 생략
+#endif
 #endif
 #endif
     }
@@ -341,5 +340,5 @@ using namespace koi_lib;
 using namespace std;
 
 int main() {
-    int i = readInt();
+
 }
