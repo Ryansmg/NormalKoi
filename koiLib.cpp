@@ -1,6 +1,6 @@
 /**
  * koiLib by gs24055
- * Version 1.12 (260313)
+ * Version 1.13 (260313)
  */
 
 // 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
@@ -236,7 +236,7 @@ namespace koi_lib {
     }
 
 #define read_single_with_end(type, Type) \
-    type read##Type(char end = ' ') {\
+    type read##Type(char end) {\
         auto token = impl::readToken(end);\
         return impl::convert_sv<type>(token);\
     }
@@ -270,6 +270,13 @@ namespace koi_lib {
     Type read(bool readEol = false) {
         return impl::convert_sv<Type>(
             impl::readToken(readEol ? '\n' : ' ')
+            );
+    }
+
+    template <typename Type = long long>
+    Type read(char end) {
+        return impl::convert_sv<Type>(
+            impl::readToken(end)
             );
     }
 
@@ -334,5 +341,5 @@ using namespace koi_lib;
 using namespace std;
 
 int main() {
-
+    int i = readInt();
 }
