@@ -239,12 +239,20 @@ namespace koi_lib {
         return impl::convert_sv<type>(token);\
     }
 
-    read_single(int, Int)
-    read_single(long long, Long)
-    read_single(double, Double)
-    read_single(long double, LDouble)
-    read_single(std::string, Str)
-    read_single(char, Char)
+#define read_single_with_end(type, Type) \
+    type read##Type(char end = ' ') {\
+        auto token = impl::readToken(end);\
+        return impl::convert_sv<type>(token);\
+    }
+
+#define read_single_def(type, Type) read_single(type, Type) read_single_with_end(type, Type)
+
+    read_single_def(int, Int)
+    read_single_def(long long, Long)
+    read_single_def(double, Double)
+    read_single_def(long double, LDouble)
+    read_single_def(std::string, Str)
+    read_single_def(char, Char)
 
 #define read_multiple(type, Type) \
     template <int arg_cnt = 1>\
@@ -329,18 +337,21 @@ namespace koi_lib {
 using namespace koi_lib;
 using namespace std;
 
-int main() {
-    using i64 = long long;
-    constexpr i64 mod1 = 1'000'000'007;
-    vector<i64> dp1(1001000), dp2(1001000), dp3(1001000);
-    dp1[1] = 1; dp2[1] = 2; dp3[1] = 2;
-    for(i64 i = 2; i <= 1000010; i++) dp3[i] = (dp3[i-1] * 2 + 2) % mod1;
-    for(i64 i = 2; i <= 1000010; i++) {
-        dp1[i] = (dp2[i-1] + 1 + dp3[i-1]) % mod1;
-        dp2[i] = (dp1[i-1] + 2 + 2*dp3[i-1]) % mod1;
-    }
-    i64 n = readInt(true);
-    cout << dp2[n] << '\n';
+int ans = 0;
+vector<tuple<int, char, char>> ans2;
 
-    readEof();
+void move(int top, int n, char a, char b, char c) {
+    if(n == 1) ans2.emplace_back(top, a, c), ans++;
+    else move(top, n-1, a, c, b),
+        move(top + n - 1, 1, a, b, c),
+        move(top, n-1, b, a, c);
+}
+
+int main() {
+    int n = readInt('\n');
+    move(1, n, 'A', 'B', 'C');
+    cout << ans << '\n';
+    for(auto [id, c1, c2] : ans2) {
+        cout << "move disk " << id << ' ' << c1 << "->" << c2 << '\n';
+    }
 }

@@ -1,13 +1,15 @@
 /**
  * koiLib by gs24055
- * Version 1.1 (260313)
+ * Version 1.12 (260313)
  */
 
 // 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
-#define INPUT_FORMAT_CHECK false
+#define INPUT_FORMAT_CHECK true
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
 #define CHECK_NON_EOL_EOF true
+// 토큰의 구분자가 예상과 같은지 확인 ("10\n" <-> "10 ")
+#define CHECK_TOKEN_END true
 ///////////////////
 
 // 입력 파일을 받아 올바른 형식의 입력 파일을 생성하기
@@ -46,9 +48,8 @@ namespace koi_lib {
             if(kl_buf_len == kl_to_read_idx) {
                 int c = std::cin.get();
                 if(c == EOF) {
-#if CHECK_NON_EOL_EOF
-                    ifc("unexpected end of file");
-#endif
+                    if constexpr(CHECK_NON_EOL_EOF)
+                        ifc("unexpected end of file");
                     c = '\n';
                 }
                 kl_read_buf[kl_buf_len++] = c;
@@ -79,7 +80,7 @@ namespace koi_lib {
             return c == ' ' || c == '\n' || c == additional_separator;
         }
 
-        std::pair<std::string_view, char> get_token(char expected_end) {
+        std::string_view get_token(char expected_end) {
             while(is_separator(peekc(), expected_end)) {
                 getc();
                 ifc("first character is separator");
@@ -90,15 +91,16 @@ namespace koi_lib {
                 if(is_separator(last = getc(), expected_end))
                     break;
             }
-            if(last != expected_end)
-                ifc("unexpected end of token");
+            if constexpr(CHECK_TOKEN_END)
+                if(last != expected_end)
+                    ifc("unexpected end of token");
 
             int end = kl_to_read_idx - 1;
             if constexpr(MAKE_INPUT_FILE) {
                 kl_tokens.emplace_back(kl_read_buf + start, end - start);
                 kl_separators.push_back(expected_end);
             }
-            return { std::string_view(kl_read_buf + start, end - start), last };
+            return std::string_view(kl_read_buf + start, end - start); // NOLINT(*-return-braced-init-list)
         }
 
         void read_expected_char(char expected) {
@@ -157,19 +159,13 @@ namespace koi_lib {
         template <int arg_cnt = 1>
         std::array<std::string_view, arg_cnt> readTokens() {
             std::array<std::string_view, arg_cnt> res;
-            for(int i = 0; i < arg_cnt; i++) {
-                auto [token, end] = get_token(i == arg_cnt - 1 ? '\n' : ' ');
-                res[i] = token;
-            }
+            for(int i = 0; i < arg_cnt; i++)
+                res[i] = get_token(i == arg_cnt - 1 ? '\n' : ' ');
             return res;
         }
 
         std::string_view readToken(char expected_end) {
-            auto [token, end] = get_token(expected_end);
-            if(end != expected_end)
-                ifc("unexpected end of token");
-
-            return token;
+            return get_token(expected_end);
         }
 
         template <typename... Types, size_t... Is>
@@ -204,7 +200,6 @@ namespace koi_lib {
 
             ~kl_init() {
                 if constexpr(INPUT_FORMAT_CHECK) {
-                    std::cout.flush();
                     assert("This should not happen." && !kl_wrong_input_format);
                 }
 
@@ -240,12 +235,20 @@ namespace koi_lib {
         return impl::convert_sv<type>(token);\
     }
 
-    read_single(int, Int)
-    read_single(long long, Long)
-    read_single(double, Double)
-    read_single(long double, LDouble)
-    read_single(std::string, Str)
-    read_single(char, Char)
+#define read_single_with_end(type, Type) \
+    type read##Type(char end = ' ') {\
+        auto token = impl::readToken(end);\
+        return impl::convert_sv<type>(token);\
+    }
+
+#define read_single_def(type, Type) read_single(type, Type) read_single_with_end(type, Type)
+
+    read_single_def(int, Int)
+    read_single_def(long long, Long)
+    read_single_def(double, Double)
+    read_single_def(long double, LDouble)
+    read_single_def(std::string, Str)
+    read_single_def(char, Char)
 
 #define read_multiple(type, Type) \
     template <int arg_cnt = 1>\
@@ -331,17 +334,5 @@ using namespace koi_lib;
 using namespace std;
 
 int main() {
-    using i64 = long long;
-    constexpr i64 mod1 = 1'000'000'007;
-    vector<i64> dp1(1001000), dp2(1001000), dp3(1001000);
-    dp1[1] = 1; dp2[1] = 2; dp3[1] = 2;
-    for(i64 i = 2; i <= 1000010; i++) dp3[i] = (dp3[i-1] * 2 + 2) % mod1;
-    for(i64 i = 2; i <= 1000010; i++) {
-        dp1[i] = (dp2[i-1] + 1 + dp3[i-1]) % mod1;
-        dp2[i] = (dp1[i-1] + 2 + 2*dp3[i-1]) % mod1;
-    }
-    i64 n = readInt(true);
-    cout << dp2[n] << '\n';
 
-    readEof();
 }
