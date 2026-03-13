@@ -4,7 +4,7 @@
  */
 
 // 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
-#define INPUT_FORMAT_CHECK false
+#define INPUT_FORMAT_CHECK true
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
 #define CHECK_NON_EOL_EOF true
@@ -205,6 +205,7 @@ namespace koi_lib {
             ~kl_init() {
                 if constexpr(INPUT_FORMAT_CHECK) {
                     std::cout.flush();
+                    assert(impl::is_eof());
                     assert("This should not happen." && !kl_wrong_input_format);
                 }
 
@@ -297,14 +298,6 @@ namespace koi_lib {
         return std::string(impl::readToken(expected_end));
     }
 
-    void readEof() {
-#if INPUT_FORMAT_CHECK
-#ifndef LOCAL
-        assert(impl::is_eof());
-#endif
-#endif
-    }
-
 #define scanf "Cannot use C-style input method"
 #define printf "Cannot use C-style output method"
 #define cin "Cannot use C++-style input method"
@@ -342,6 +335,4 @@ int main() {
     }
     i64 n = readInt(true);
     cout << dp2[n] << '\n';
-
-    readEof();
 }

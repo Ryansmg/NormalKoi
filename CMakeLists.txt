@@ -4,3 +4,4 @@ project(NormalKoi)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(NormalKoi koiLib.cpp)
+set(CMAKE_CXX_FLAGS "-g -DLOCAL -Wall -lm -static")

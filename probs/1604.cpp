@@ -1,20 +1,16 @@
 /**
  * koiLib by gs24055
- * Version 1.1 (260313)
+ * Version 1.0 (260312)
  */
 
 // 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
-#define INPUT_FORMAT_CHECK false
-/////////////////// 세부 항목 설정
-// 입력 파일의 마지막이 '\n'으로 끝나는지 확인
-#define CHECK_NON_EOL_EOF true
-///////////////////
+#define INPUT_FORMAT_CHECK true
 
 // 입력 파일을 받아 올바른 형식의 입력 파일을 생성하기
 #define MAKE_INPUT_FILE false
 
-// 입력 버퍼 크기. 최대 입력 길이보다 크도록 설정
-#define INPUT_BUFFER_SIZE 16777216
+// 최대 입력 길이보다 크도록 설정
+#define INPUT_BUFFER_SIZE 12000000
 
 #include <bits/stdc++.h>
 
@@ -46,9 +42,7 @@ namespace koi_lib {
             if(kl_buf_len == kl_to_read_idx) {
                 int c = std::cin.get();
                 if(c == EOF) {
-#if CHECK_NON_EOL_EOF
                     ifc("unexpected end of file");
-#endif
                     c = '\n';
                 }
                 kl_read_buf[kl_buf_len++] = c;
@@ -125,11 +119,14 @@ namespace koi_lib {
 
         cvsv_from_chars(long long)
         cvsv_from_chars(int)
-#ifdef __cpp_lib_to_chars
-        // 성능 면에서 나으나 컴파일러 버전에 따라 지원하지 않음
-        cvsv_from_chars(double)
-        cvsv_from_chars(long double)
-#else
+        // cvsv_from_chars(double)
+        // cvsv_from_chars(long double)
+
+        template <>
+        std::string convert_sv<std::string>(const std::string_view& s) {
+            return std::string(s);
+        }
+
         template <>
         double convert_sv<double>(const std::string_view& s) {
             auto tmp = std::string(s);
@@ -141,13 +138,7 @@ namespace koi_lib {
             auto tmp = std::string(s);
             return std::strtold(tmp.c_str(), nullptr);
         }
-#endif
-
-        template <>
-        std::string convert_sv<std::string>(const std::string_view& s) {
-            return std::string(s);
-        }
-
+        
         template <>
         char convert_sv<char>(const std::string_view& s) {
             assert(s.size() == 1);
@@ -204,7 +195,6 @@ namespace koi_lib {
 
             ~kl_init() {
                 if constexpr(INPUT_FORMAT_CHECK) {
-                    std::cout.flush();
                     assert("This should not happen." && !kl_wrong_input_format);
                 }
 
@@ -284,25 +274,15 @@ namespace koi_lib {
     }
 
     template <typename... Args>
-    // ReSharper disable once CppDFAUnreadVariable
     void get(Args&... args) {
         constexpr size_t arg_cnt = sizeof...(Args);
         auto tokens = impl::readTokens<arg_cnt>();
         int i = 0;
-        // ReSharper disable once CppDFAUnusedValue
         ((args = impl::convert_sv<Args>(tokens[i++])), ...);
     }
 
     std::string readToken(char expected_end) {
         return std::string(impl::readToken(expected_end));
-    }
-
-    void readEof() {
-#if INPUT_FORMAT_CHECK
-#ifndef LOCAL
-        assert(impl::is_eof());
-#endif
-#endif
     }
 
 #define scanf "Cannot use C-style input method"
@@ -331,17 +311,16 @@ using namespace koi_lib;
 using namespace std;
 
 int main() {
-    using i64 = long long;
-    constexpr i64 mod1 = 1'000'000'007;
-    vector<i64> dp1(1001000), dp2(1001000), dp3(1001000);
-    dp1[1] = 1; dp2[1] = 2; dp3[1] = 2;
-    for(i64 i = 2; i <= 1000010; i++) dp3[i] = (dp3[i-1] * 2 + 2) % mod1;
-    for(i64 i = 2; i <= 1000010; i++) {
-        dp1[i] = (dp2[i-1] + 1 + dp3[i-1]) % mod1;
-        dp2[i] = (dp1[i-1] + 2 + 2*dp3[i-1]) % mod1;
-    }
-    i64 n = readInt(true);
-    cout << dp2[n] << '\n';
+    int n = read(true);
+    auto arr = readArr(n);
 
-    readEof();
+    int ans = 0;
+    int cur = 0;
+    for(int i = 0; i < n; i++) {
+        if(i == 0 || arr[i-1] < arr[i])
+            ans = max(ans, ++cur);
+        else cur = 1;
+    }
+
+    cout << ans << '\n';
 }
