@@ -1,15 +1,25 @@
 /**
  * koiLib by gs24055
- * Version 1.14 (260313)
+ * Version 1.2 (260314)
  */
 
+#include <bits/stdc++.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <poll.h>
+#include <unistd.h>
+#endif
+
 // 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
-#define INPUT_FORMAT_CHECK false
+#define INPUT_FORMAT_CHECK true
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
-#define CHECK_NON_EOL_EOF true
+#define CHECK_NON_EOL_EOF false
 // 토큰의 구분자가 예상과 같은지 확인 ("10\n" <-> "10 ")
 #define CHECK_TOKEN_END true
+// 예상된 eof 지점 뒤에 입력이 더 있는지 확인
+#define CHECK_TRAILING_INPUT true
 ///////////////////
 
 // 입력 파일을 받아 올바른 형식의 입력 파일을 생성하기
@@ -18,10 +28,13 @@
 // 입력 버퍼 크기. 최대 입력 길이보다 크도록 설정
 #define INPUT_BUFFER_SIZE 16777216
 
-#include <bits/stdc++.h>
-
 namespace koi_lib {
     namespace impl {
+#if MAKE_INPUT_FILE
+#undef INPUT_FORMAT_CHECK
+#define INPUT_FORMAT_CHECK false
+#endif
+
 #if INPUT_FORMAT_CHECK
 #define ifc(msg) (void) (koi_lib::impl::kl_wrong_input_format = true, \
     koi_lib::impl::wrong_input_format_reason = msg, \
@@ -57,13 +70,40 @@ namespace koi_lib {
         }
 
         bool is_eof() {
-            if(kl_buf_len != kl_to_read_idx) return false;
-            int c = std::cin.get();
-            if(c == EOF) return true;
-            assert("input file is larger than INPUT_BUFFER_SIZE, please increase the buffer."
-                && kl_buf_len < INPUT_BUFFER_SIZE - 1);
-            kl_read_buf[kl_buf_len++] = c;
-            return false;
+#ifdef _WIN32
+            DWORD bytes;
+            if(!PeekNamedPipe(GetStdHandle(STD_INPUT_HANDLE), nullptr, 0, nullptr,
+                &bytes, nullptr))
+                return true;
+            return bytes == 0;
+#else
+            pollfd pfd{};
+            pfd.fd = STDIN_FILENO;
+            pfd.events = POLLIN;
+
+            int r = poll(&pfd, 1, 0);
+            if(r <= 0) return true;
+
+            if(pfd.revents & POLLHUP) return true;
+
+            if(pfd.revents & POLLIN) {
+                char c;
+                ssize_t n = read(STDIN_FILENO, &c, 1);
+                if(n == 0) return true;   // EOF
+                if(n > 0) {
+                    ungetc(c, stdin);     // 문자 복원
+                    return false;
+                }
+            }
+
+            return true;
+#endif
+            // int c = std::cin.get();
+            // if(c == EOF) return true;
+            // assert("input file is larger than INPUT_BUFFER_SIZE, please increase the buffer."
+            //     && kl_buf_len < INPUT_BUFFER_SIZE - 1);
+            // kl_read_buf[kl_buf_len++] = c;
+            // return false;
         }
 
         char peekc() {
@@ -191,6 +231,8 @@ namespace koi_lib {
             }
         }
 
+        bool eof_explicitly_checked = false;
+
         struct kl_init {
             kl_init() {
                 std::ios::sync_with_stdio(false);
@@ -200,6 +242,8 @@ namespace koi_lib {
 
             ~kl_init() {
                 if constexpr(INPUT_FORMAT_CHECK) {
+                    if constexpr(CHECK_TRAILING_INPUT)
+                        assert("Trailing input exists." && is_eof());
                     assert("This should not happen." && !kl_wrong_input_format);
                 }
 
@@ -304,12 +348,13 @@ namespace koi_lib {
     }
 
     void readEof() {
-#if INPUT_FORMAT_CHECK
-#ifndef LOCAL
+        if(impl::eof_explicitly_checked)
+            return;
+        impl::eof_explicitly_checked = true;
+#if INPUT_FORMAT_CHECK && CHECK_TRAILING_INPUT
         assert(impl::is_eof());
 #if MAKE_INPUT_FILE
         std::exit(0);  // 정답 계산 등을 생략
-#endif
 #endif
 #endif
     }
@@ -336,7 +381,9 @@ namespace koi_lib {
 #undef read_multiple
 }
 
+USE_COUT;
 using namespace koi_lib;
+
 using namespace std;
 
 int main() {
