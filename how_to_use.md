@@ -1,14 +1,15 @@
 # koiLib
 코이스터디의 데이터를 수정하기 위한 라이브러리  
+
 ac 코드를 기반으로 벨리데이터 및 입력 파일 포매터를 자동 생성하는 것이 목표입니다.
 
 ## 사용법
-koiLib.cpp 파일에서 `using namespace koi_lib;` 이후에 문제 풀이 코드를 작성하면 됩니다.
+koiLib.cpp 파일에서 `#pragma endregion` 이후에 문제 풀이 코드를 작성하면 됩니다.
 이때 유의할 점은 입력을 아래 함수들을 사용해 받고, 출력은 cout으로 해야 한다는 점입니다.
 C-style 입출력은 사용할 수 없습니다.  
-팁) `namespace koi_lib` 코드블럭을 접으면 편합니다.  
+팁) `namespace koi_lib` 코드블럭이나 `#pragma region`을 접으면 편합니다.  
 
-아래 내용은 v1.14를 기반으로 작성되었습니다.
+아래 내용은 v1.3을 기반으로 작성되었습니다.
 
 ## 입력 함수
 
@@ -40,8 +41,9 @@ C-style 입출력은 사용할 수 없습니다.
   - `int`, `long long`, `double`, `long double`, `std::string`, `char`를 지원합니다.
   
 
-- `readArr<Type>(n: int)`
+- `readArr<Type>(n: int, sep: char = ' ')`
   - 공백으로 구분되어 주어지는 크기 n의 배열을 입력받을 때 사용합니다.
+  - 공백이 아닌 다른 문자로 구분되어 주어질 경우, `sep` 인자에 해당 문자를 넘기면 됩니다.
   - 지원하는 타입은 위와 동일.
   
 
@@ -53,5 +55,3 @@ C-style 입출력은 사용할 수 없습니다.
 
 - `readEof()`
   - 입력 형식 확인을 위해 end-of-file을 입력받을 때 사용합니다.
-  - 로컬 환경에서 그냥 사용하면 다음 입력을 받을 때까지 기다리니 주의.
-    - -DLOCAL 옵션으로 컴파일하거나 `CHECK_INPUT_FORMAT`을 끄면 eof를 기다리지 않고 종료합니다.

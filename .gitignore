@@ -2,6 +2,7 @@
 cmake-build-*/
 build/
 out/
+gitignored/
 
 # CLion IDE files
 .idea/

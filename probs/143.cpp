@@ -1,9 +1,8 @@
 /**
  * koiLib by gs24055
- * Version 1.3 (260404)
+ * Version 1.3 indev (260402)
  */
 
-#pragma region koiLib
 #include <bits/stdc++.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -12,7 +11,7 @@
 #include <unistd.h>
 #endif
 
-// 입력 형식이 틀렸을 시 런타임 에러와 함께 종료
+// 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
 #define INPUT_FORMAT_CHECK true
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
@@ -21,10 +20,8 @@
 #define CHECK_TOKEN_END true
 // 예상된 eof 지점 뒤에 입력이 더 있는지 확인
 #define CHECK_TRAILING_INPUT true
-// 줄의 끝이 " \n"으로 끝나는지 확인
-#define CHECK_TRAILING_SPACE true
-// "1.05"를 정수로 변환하는 등 잘못된 변환을 확인
-#define CHECK_WRONG_CONVERSION true
+// 줄의 끝이 " \n"으로 끝나는 것을 허용
+#define ALLOW_TRAILING_SPACE false
 ///////////////////
 
 // 입력 파일을 받아 올바른 형식의 입력 파일을 생성하기
@@ -41,20 +38,15 @@ namespace koi_lib {
 #endif
 
 #if INPUT_FORMAT_CHECK
-#define ifc(msg) (void) ((assert(((void) msg, false))))
+#define ifc(msg) (void) (koi_lib::impl::kl_wrong_input_format = true, \
+    koi_lib::impl::wrong_input_format_reason = msg, \
+    (assert(((void) msg, false))))
 #else
 #define ifc(...)
-#undef CHECK_NON_EOL_EOF
-#undef CHECK_TOKEN_END
-#undef CHECK_TRAILING_INPUT
-#undef CHECK_TRAILING_SPACE
-#undef CHECK_WRONG_CONVERSION
-#define CHECK_NON_EOL_EOF false
-#define CHECK_TOKEN_END false
-#define CHECK_TRAILING_INPUT false
-#define CHECK_TRAILING_SPACE false
-#define CHECK_WRONG_CONVERSION false
 #endif
+
+        bool kl_wrong_input_format = false;
+        const char* wrong_input_format_reason = "null";
 
         char kl_read_buf[INPUT_BUFFER_SIZE];
         std::vector<std::string_view> kl_tokens;
@@ -79,8 +71,7 @@ namespace koi_lib {
                 int c = std::cin.get();
                 if(c == EOF) {
                     if constexpr(CHECK_NON_EOL_EOF) {
-                        std::cerr << "unexpected end of file at line " << kl_line_cnt() << std::endl;
-                        std::exit(1);
+                        ifc("unexpected end of file");
                     }
                     c = '\n';
                 }
@@ -151,9 +142,8 @@ namespace koi_lib {
                     break;
             }
             if(expected_end == '\n' && last == ' ') {
-                if constexpr(!CHECK_TRAILING_SPACE) {
-                    while(last == ' ')
-                        last = getc();
+                if constexpr(ALLOW_TRAILING_SPACE) {
+                    last = getc();
                 }
             }
 
@@ -163,7 +153,7 @@ namespace koi_lib {
                     std::string ex = (expected_end == '\n' ? "\\n" : std::string(1, expected_end));
                     std::cerr << "unexpected end of token at line " << kl_line_cnt() << std::endl;
                     std::cerr << "expected: '" << ex << "', input: '" << ch << "'" << std::endl;
-                    std::exit(1);
+                    ifc("unexpected end of token");
                 }
 
             int end = kl_to_read_idx - 1;
@@ -188,17 +178,12 @@ namespace koi_lib {
         template <typename target>
         target convert_sv(const std::string_view& s) = delete;
 
-#define cvsv_from_chars(type)                                                 \
-    template <>                                                               \
-    type convert_sv<type>(const std::string_view& s) {                        \
-        type res;                                                             \
-        auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), res); \
-        if constexpr(CHECK_WRONG_CONVERSION)                                               \
-            if(ec != std::errc() || ptr != s.data() + s.size()) {                          \
-                std::cerr << "wrong conversion at convert_sv, '" << s << "' to " << #type << std::endl;  \
-                std::exit(1);                                                 \
-            }                                                                 \
-        return res;                                                           \
+#define cvsv_from_chars(type)                                \
+    template <>                                              \
+    type convert_sv<type>(const std::string_view& s) {       \
+        type res;                                            \
+        std::from_chars(s.data(), s.data() + s.size(), res); \
+        return res;                                          \
     }
 
         cvsv_from_chars(long long)
@@ -211,27 +196,13 @@ namespace koi_lib {
         template <>
         double convert_sv<double>(const std::string_view& s) {
             auto tmp = std::string(s);
-            char* endPtr;
-            double res = std::strtod(tmp.c_str(), &endPtr);
-            if constexpr(CHECK_WRONG_CONVERSION)
-                if(endPtr != s.data() + s.size()) {
-                    std::cerr << "wrong conversion at convert_sv, '" << s << "' to double" << std::endl;
-                    std::exit(1);
-                }
-            return res;
+            return std::strtod(tmp.c_str(), nullptr);
         }
 
         template <>
         long double convert_sv<long double>(const std::string_view& s) {
             auto tmp = std::string(s);
-            char* endPtr;
-            long double res = std::strtold(tmp.c_str(), &endPtr);
-            if constexpr(CHECK_WRONG_CONVERSION)
-                if(endPtr != s.data() + s.size()) {
-                    std::cerr << "wrong conversion at convert_sv, '" << s << "' to long double" << std::endl;
-                    std::exit(1);
-                }
-            return res;
+            return std::strtold(tmp.c_str(), nullptr);
         }
 #endif
 
@@ -294,6 +265,7 @@ namespace koi_lib {
                 if constexpr(INPUT_FORMAT_CHECK) {
                     if constexpr(CHECK_TRAILING_INPUT)
                         assert("Trailing input exists." && is_eof());
+                    assert("This should not happen." && !kl_wrong_input_format);
                 }
 
                 if constexpr(MAKE_INPUT_FILE) {
@@ -433,11 +405,101 @@ namespace koi_lib {
 USE_COUT;
 using namespace koi_lib;
 
-/** koiLib end **/
-#pragma endregion
+// using namespace std;
+using std::less, std::vector;
 
-using namespace std;
+
+template <typename T, typename Compare>
+inline void merge(const T* s1, const T* e1, const T* s2, const T* e2, T* out, Compare cmp = less<T>()) {
+    while(s1 != e1 && s2 != e2) {
+        if(cmp(*s1, *s2)) *(out++) = *(s1++);
+        else *(out++) = *(s2++);
+    }
+    while(s1 != e1) *(out++) = *(s1++);
+    while(s2 != e2) *(out++) = *(s2++);
+}
+
+template <typename T>
+inline void merge(const T* s1, const T* e1, const T* s2, const T* e2, T* out) {
+    while(s1 != e1 && s2 != e2) {
+        if(*s1 <= *s2) *(out++) = *(s1++);
+        else *(out++) = *(s2++);
+    }
+    while(s1 != e1) *(out++) = *(s1++);
+    while(s2 != e2) *(out++) = *(s2++);
+}
+
+template <typename T, typename Compare>
+inline void merge(const vector<T>& a, const vector<T>& b, vector<T>& out, Compare cmp = less<T>()) {
+    merge(a.begin(), a.end(), b.begin(), b.end(), out.begin(), cmp);
+}
+
+template <typename T>
+inline void merge(const vector<T>& a, const vector<T>& b, vector<T>& out) {
+    merge(a.begin(), a.end(), b.begin(), b.end(), out.begin());
+}
+
+template <typename T, typename Compare>
+inline void naive_sort(T* s, T* e, Compare cmp = less<T>()) {
+    for(T* i = s; i != e; i++) {
+        T* sel = i;
+        for(T* j = i + 1; j != e; j++)
+            if(!cmp(*sel, *j)) sel = j;
+        if(sel != i) swap(*i, *sel);
+    }
+}
+
+template <typename T>
+inline void naive_sort(T* s, T* e) {
+    for(T* i = s; i != e; i++) {
+        T* sel = i;
+        for(T* j = i + 1; j != e; j++)
+            if(*sel > *j) sel = j;
+        if(sel != i) swap(*i, *sel);
+    }
+}
+
+template <typename T, typename Compare>
+void sort_(T* s, T* e, T* buf, Compare cmp) {
+    long long dist = e - s;
+    if(dist <= 16) {
+        naive_sort(s, e, cmp);
+        return;
+    }
+    sort_(s, s + dist / 2 + 1, buf, cmp);
+    sort_(s + dist / 2 + 1, e, buf, cmp);
+    merge(s, s + dist / 2 + 1, s + dist / 2 + 1, e, buf, cmp);
+    for(long long i = 0; i < dist; i++) *(s + i) = *(buf + i);
+}
+
+template <typename T>
+void sort_(T* s, T* e, T* buf) {
+    long long dist = e - s;
+    if(dist <= 16) {
+        naive_sort(s, e);
+        return;
+    }
+    sort_(s, s + dist / 2 + 1, buf);
+    sort_(s + dist / 2 + 1, e, buf);
+    merge(s, s + dist / 2 + 1, s + dist / 2 + 1, e, buf);
+    for(long long i = 0; i < dist; i++) *(s + i) = *(buf + i);
+}
+
+template <typename T> inline void sort(T* s, T* e) {
+    T* buffer = new T[e - s]();
+    sort_(s, e, buffer);
+    delete[] buffer;
+}
+template <typename T, typename Compare> inline void sort(T* s, T* e, Compare cmp) {
+    T* buffer = new T[e - s]();
+    sort_(s, e, buffer, cmp);
+    delete[] buffer;
+}
+
 
 int main() {
-
+    int n = readInt(true);
+    auto arr = readArr<int>(n);
+    sort(arr.begin(), arr.end());
+    for(int i : arr) cout << i << ' ';
 }

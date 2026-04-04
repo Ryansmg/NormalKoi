@@ -1,9 +1,8 @@
 /**
  * koiLib by gs24055
- * Version 1.3 (260404)
+ * Version 1.3 indev (260402)
  */
 
-#pragma region koiLib
 #include <bits/stdc++.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -12,7 +11,7 @@
 #include <unistd.h>
 #endif
 
-// 입력 형식이 틀렸을 시 런타임 에러와 함께 종료
+// 입력 형식이 틀렸을 시 런타임 에러 AssertionFailed
 #define INPUT_FORMAT_CHECK true
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
@@ -21,10 +20,6 @@
 #define CHECK_TOKEN_END true
 // 예상된 eof 지점 뒤에 입력이 더 있는지 확인
 #define CHECK_TRAILING_INPUT true
-// 줄의 끝이 " \n"으로 끝나는지 확인
-#define CHECK_TRAILING_SPACE true
-// "1.05"를 정수로 변환하는 등 잘못된 변환을 확인
-#define CHECK_WRONG_CONVERSION true
 ///////////////////
 
 // 입력 파일을 받아 올바른 형식의 입력 파일을 생성하기
@@ -41,20 +36,15 @@ namespace koi_lib {
 #endif
 
 #if INPUT_FORMAT_CHECK
-#define ifc(msg) (void) ((assert(((void) msg, false))))
+#define ifc(msg) (void) (koi_lib::impl::kl_wrong_input_format = true, \
+    koi_lib::impl::wrong_input_format_reason = msg, \
+    (assert(((void) msg, false))))
 #else
 #define ifc(...)
-#undef CHECK_NON_EOL_EOF
-#undef CHECK_TOKEN_END
-#undef CHECK_TRAILING_INPUT
-#undef CHECK_TRAILING_SPACE
-#undef CHECK_WRONG_CONVERSION
-#define CHECK_NON_EOL_EOF false
-#define CHECK_TOKEN_END false
-#define CHECK_TRAILING_INPUT false
-#define CHECK_TRAILING_SPACE false
-#define CHECK_WRONG_CONVERSION false
 #endif
+
+        bool kl_wrong_input_format = false;
+        const char* wrong_input_format_reason = "null";
 
         char kl_read_buf[INPUT_BUFFER_SIZE];
         std::vector<std::string_view> kl_tokens;
@@ -79,8 +69,7 @@ namespace koi_lib {
                 int c = std::cin.get();
                 if(c == EOF) {
                     if constexpr(CHECK_NON_EOL_EOF) {
-                        std::cerr << "unexpected end of file at line " << kl_line_cnt() << std::endl;
-                        std::exit(1);
+                        ifc("unexpected end of file");
                     }
                     c = '\n';
                 }
@@ -150,20 +139,10 @@ namespace koi_lib {
                 if(is_separator(last = getc(), expected_end))
                     break;
             }
-            if(expected_end == '\n' && last == ' ') {
-                if constexpr(!CHECK_TRAILING_SPACE) {
-                    while(last == ' ')
-                        last = getc();
-                }
-            }
-
             if constexpr(CHECK_TOKEN_END)
                 if(last != expected_end) {
-                    std::string ch = (last == '\n' ? "\\n" : std::string(1, last));
-                    std::string ex = (expected_end == '\n' ? "\\n" : std::string(1, expected_end));
                     std::cerr << "unexpected end of token at line " << kl_line_cnt() << std::endl;
-                    std::cerr << "expected: '" << ex << "', input: '" << ch << "'" << std::endl;
-                    std::exit(1);
+                    ifc("unexpected end of token");
                 }
 
             int end = kl_to_read_idx - 1;
@@ -188,17 +167,12 @@ namespace koi_lib {
         template <typename target>
         target convert_sv(const std::string_view& s) = delete;
 
-#define cvsv_from_chars(type)                                                 \
-    template <>                                                               \
-    type convert_sv<type>(const std::string_view& s) {                        \
-        type res;                                                             \
-        auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), res); \
-        if constexpr(CHECK_WRONG_CONVERSION)                                               \
-            if(ec != std::errc() || ptr != s.data() + s.size()) {                          \
-                std::cerr << "wrong conversion at convert_sv, '" << s << "' to " << #type << std::endl;  \
-                std::exit(1);                                                 \
-            }                                                                 \
-        return res;                                                           \
+#define cvsv_from_chars(type)                                \
+    template <>                                              \
+    type convert_sv<type>(const std::string_view& s) {       \
+        type res;                                            \
+        std::from_chars(s.data(), s.data() + s.size(), res); \
+        return res;                                          \
     }
 
         cvsv_from_chars(long long)
@@ -211,27 +185,13 @@ namespace koi_lib {
         template <>
         double convert_sv<double>(const std::string_view& s) {
             auto tmp = std::string(s);
-            char* endPtr;
-            double res = std::strtod(tmp.c_str(), &endPtr);
-            if constexpr(CHECK_WRONG_CONVERSION)
-                if(endPtr != s.data() + s.size()) {
-                    std::cerr << "wrong conversion at convert_sv, '" << s << "' to double" << std::endl;
-                    std::exit(1);
-                }
-            return res;
+            return std::strtod(tmp.c_str(), nullptr);
         }
 
         template <>
         long double convert_sv<long double>(const std::string_view& s) {
             auto tmp = std::string(s);
-            char* endPtr;
-            long double res = std::strtold(tmp.c_str(), &endPtr);
-            if constexpr(CHECK_WRONG_CONVERSION)
-                if(endPtr != s.data() + s.size()) {
-                    std::cerr << "wrong conversion at convert_sv, '" << s << "' to long double" << std::endl;
-                    std::exit(1);
-                }
-            return res;
+            return std::strtold(tmp.c_str(), nullptr);
         }
 #endif
 
@@ -294,6 +254,7 @@ namespace koi_lib {
                 if constexpr(INPUT_FORMAT_CHECK) {
                     if constexpr(CHECK_TRAILING_INPUT)
                         assert("Trailing input exists." && is_eof());
+                    assert("This should not happen." && !kl_wrong_input_format);
                 }
 
                 if constexpr(MAKE_INPUT_FILE) {
@@ -433,11 +394,16 @@ namespace koi_lib {
 USE_COUT;
 using namespace koi_lib;
 
-/** koiLib end **/
-#pragma endregion
-
 using namespace std;
 
 int main() {
-
+    int cnt = 0;
+    int n = readInt(true);
+    auto arr = readArr<int>(n, '\n');
+    for(int i=0; i<n; i++) {
+        for(int j=0; j<n-1; j++) {
+            if(arr[j] > arr[j+1]) swap(arr[j], arr[j+1]), cnt++;
+        }
+    }
+    cout << cnt;
 }
