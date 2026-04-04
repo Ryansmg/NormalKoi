@@ -1,7 +1,10 @@
 /**
  * koiLib by gs24055
- * Version 1.3 (260404)
+ * Version 1.31 (260404)
  */
+
+#define VALIDATOR true
+#define FORMATTER false
 
 #pragma region koiLib
 #include <bits/stdc++.h>
@@ -12,8 +15,9 @@
 #include <unistd.h>
 #endif
 
-// 입력 형식이 틀렸을 시 런타임 에러와 함께 종료
-#define INPUT_FORMAT_CHECK true
+// 입력 버퍼 크기. 최대 입력 길이보다 크도록 설정
+#define INPUT_BUFFER_SIZE 16777216
+
 /////////////////// 세부 항목 설정
 // 입력 파일의 마지막이 '\n'으로 끝나는지 확인
 #define CHECK_NON_EOL_EOF false
@@ -27,20 +31,14 @@
 #define CHECK_WRONG_CONVERSION true
 ///////////////////
 
-// 입력 파일을 받아 올바른 형식의 입력 파일을 생성하기
-#define MAKE_INPUT_FILE false
-
-// 입력 버퍼 크기. 최대 입력 길이보다 크도록 설정
-#define INPUT_BUFFER_SIZE 16777216
-
 namespace koi_lib {
     namespace impl {
-#if MAKE_INPUT_FILE
-#undef INPUT_FORMAT_CHECK
-#define INPUT_FORMAT_CHECK false
+#if FORMATTER
+#undef VALIDATOR
+#define VALIDATOR false
 #endif
 
-#if INPUT_FORMAT_CHECK
+#if VALIDATOR
 #define ifc(msg) (void) ((assert(((void) msg, false))))
 #else
 #define ifc(...)
@@ -167,7 +165,7 @@ namespace koi_lib {
                 }
 
             int end = kl_to_read_idx - 1;
-            if constexpr(MAKE_INPUT_FILE) {
+            if constexpr(FORMATTER) {
                 kl_tokens.emplace_back(kl_read_buf + start, end - start);
                 kl_separators.push_back(expected_end);
             }
@@ -179,7 +177,7 @@ namespace koi_lib {
             if(c != expected)
                 ifc("unexpected char at read_expected_char");
 
-            if constexpr(MAKE_INPUT_FILE) {
+            if constexpr(FORMATTER) {
                 kl_tokens.emplace_back(kl_read_buf + kl_to_read_idx - 1, 1);
                 kl_separators.push_back(-1);
             }
@@ -291,18 +289,18 @@ namespace koi_lib {
             }
 
             ~kl_init() {
-                if constexpr(INPUT_FORMAT_CHECK) {
+                if constexpr(VALIDATOR) {
                     if constexpr(CHECK_TRAILING_INPUT)
                         assert("Trailing input exists." && is_eof());
                 }
 
-                if constexpr(MAKE_INPUT_FILE) {
+                if constexpr(FORMATTER) {
                     print_input_file();
                 }
             }
         } k_l_i_;
 
-#if MAKE_INPUT_FILE
+#if FORMATTER
         struct null_stream {
             template <typename T>
             null_stream& operator<<(const T&) {
@@ -400,9 +398,9 @@ namespace koi_lib {
         if(impl::eof_explicitly_checked)
             return;
         impl::eof_explicitly_checked = true;
-#if INPUT_FORMAT_CHECK && CHECK_TRAILING_INPUT
+#if VALIDATOR && CHECK_TRAILING_INPUT
         assert(impl::is_eof());
-#if MAKE_INPUT_FILE
+#if FORMATTER
         std::exit(0);  // 정답 계산 등을 생략
 #endif
 #endif
@@ -412,13 +410,13 @@ namespace koi_lib {
 #define printf "Cannot use C-style output method"
 #define cin "Cannot use C++-style input method"
 
-#if MAKE_INPUT_FILE
+#if FORMATTER
 #define USE_COUT
 #else
 #define USE_COUT using std::cout
 #endif
 
-#if INPUT_FORMAT_CHECK
+#if VALIDATOR
 #define ensure(...) assert(__VA_ARGS__)
 #else
 #define ensure(...)
