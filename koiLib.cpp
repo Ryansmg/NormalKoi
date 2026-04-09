@@ -1,6 +1,6 @@
 /**
  * koiLib by gs24055
- * Version 1.4 (260409)
+ * Version 1.41 (260409)
  */
 
 #define VALIDATOR true
@@ -49,10 +49,7 @@ namespace koi_lib {
 #define VALIDATOR false
 #endif
 
-#if VALIDATOR
-#define ifc(msg) (void) ((assert(((void) msg, false))))
-#else
-#define ifc(...)
+#if !VALIDATOR
 #undef CHECK_NON_EOL_EOF
 #undef CHECK_TOKEN_END
 #undef CHECK_TRAILING_INPUT
@@ -169,7 +166,10 @@ namespace koi_lib {
         std::string_view get_token(char expected_end) {
             while(is_separator(peekc(), expected_end)) {
                 getc();
-                ifc("first character is separator");
+                if constexpr(VALIDATOR) {
+                    std::cerr << "get_token: first character is separator" << std::endl;
+                    std::exit(1);
+                }
             }
             int start = kl_to_read_idx;
             char last = 0;
@@ -253,6 +253,7 @@ namespace koi_lib {
         cvsv_from_chars(int)
 #ifdef __cpp_lib_to_chars
         // 성능 면에서 나으나 컴파일러 버전에 따라 지원하지 않음
+        cvsv_from_chars(float)
         cvsv_from_chars(double)
         cvsv_from_chars(long double)
 #else
@@ -290,7 +291,12 @@ namespace koi_lib {
 
         template <>
         char convert_sv<char>(const std::string_view& s) {
-            assert(s.size() == 1);
+            if constexpr(CHECK_WRONG_CONVERSION) {
+                if(s.size() != 1) {
+                    std::cerr << "wrong conversion at convert_sv, '" << s << "' to char" << std::endl;
+                    std::exit(1);
+                }
+            }
             return s[0];
         }
 
@@ -341,7 +347,10 @@ namespace koi_lib {
             ~kl_init() {
                 if constexpr(VALIDATOR) {
                     if constexpr(CHECK_TRAILING_INPUT)
-                        assert("Trailing input exists." && is_eof());
+                        if(!is_eof()) {
+                            std::cerr << "Trailing input exists." << std::endl;
+                            std::exit(1);
+                        }
                 }
 
                 if constexpr(FORMATTER) {
@@ -472,7 +481,6 @@ namespace koi_lib {
 #define ensure(...)
 #endif
 
-#undef ifc
 #undef cvsv_from_chars
 #undef read_single
 #undef read_multiple
@@ -487,15 +495,5 @@ using namespace koi_lib;
 using namespace std;
 
 int main() {
-    auto [n, k] = readInts<2>();
-    auto arr = readArr(n);
 
-    long long sum = 0, ans = 0;
-    for(int l = 0, r = 0; r < n; r++) {
-        sum += arr[r];
-        while(sum > k && l < r) sum -= arr[l++];
-        if(sum <= k) ans = max(ans, sum);
-    }
-
-    cout << ans;
 }
