@@ -1,35 +1,46 @@
 /**
  * koiLib by gs24055
- * Version 1.31 (260404)
+ * Version 1.4 (260409)
  */
 
 #define VALIDATOR true
 #define FORMATTER false
 
+/////////////////// 세부 항목 설정
+// 토큰의 구분자가 예상과 같은지 확인 ("10\n" <-> "10 ")
+#define CHECK_TOKEN_END true
+// `\n` 대신 `\r\n`이 사용되었는지 확인
+#define CHECK_WIN_LINEBREAK true
+// 줄의 끝이 " \n"으로 끝나는지 확인
+#define CHECK_TRAILING_SPACE true
+///////////////////
+
 #pragma region koiLib
-#include <bits/stdc++.h>
+// 입력 버퍼 크기. 최대 입력 길이보다 크도록 설정
+#define INPUT_BUFFER_SIZE 16777216
+
+/////////////////// 추가 세부 항목 설정
+// 입력 파일의 마지막이 '\n'으로 끝나는지 확인
+#define CHECK_NON_EOL_EOF false
+// 예상된 eof 지점 뒤에 입력이 더 있는지 확인
+#define CHECK_TRAILING_INPUT true
+// "1.05"를 정수로 변환하는 등 잘못된 변환을 확인
+#define CHECK_WRONG_CONVERSION true
+///////////////////
+
+#include <array>
+#include <cassert>
+#include <charconv>
+#include <iostream>
+#include <string>
+#include <tuple>
+#include <vector>
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <poll.h>
 #include <unistd.h>
 #endif
-
-// 입력 버퍼 크기. 최대 입력 길이보다 크도록 설정
-#define INPUT_BUFFER_SIZE 16777216
-
-/////////////////// 세부 항목 설정
-// 입력 파일의 마지막이 '\n'으로 끝나는지 확인
-#define CHECK_NON_EOL_EOF false
-// 토큰의 구분자가 예상과 같은지 확인 ("10\n" <-> "10 ")
-#define CHECK_TOKEN_END true
-// 예상된 eof 지점 뒤에 입력이 더 있는지 확인
-#define CHECK_TRAILING_INPUT true
-// 줄의 끝이 " \n"으로 끝나는지 확인
-#define CHECK_TRAILING_SPACE true
-// "1.05"를 정수로 변환하는 등 잘못된 변환을 확인
-#define CHECK_WRONG_CONVERSION true
-///////////////////
 
 namespace koi_lib {
     namespace impl {
@@ -134,7 +145,25 @@ namespace koi_lib {
         }
 
         bool is_separator(char c, char additional_separator) {
-            return c == ' ' || c == '\n' || c == additional_separator;
+            return c == ' ' || c == '\n' || c == '\r' || c == additional_separator;
+        }
+
+        std::string escaped_string(char c) {
+            if(c == '\n') return "\\n";
+            if(c == '\r') return "\\r";
+            return {c};
+        }
+
+        std::string escaped_string(const std::string& s) {
+            std::string res;
+            for(char c : s) res.append(escaped_string(c));
+            return res;
+        }
+
+        std::string escaped_string(const std::string_view& s) {
+            std::string res;
+            for(char c : s) res.append(escaped_string(c));
+            return res;
         }
 
         std::string_view get_token(char expected_end) {
@@ -148,23 +177,38 @@ namespace koi_lib {
                 if(is_separator(last = getc(), expected_end))
                     break;
             }
+
+            int end = kl_to_read_idx - 1;
+
             if(expected_end == '\n' && last == ' ') {
-                if constexpr(!CHECK_TRAILING_SPACE) {
+                if constexpr(CHECK_TRAILING_SPACE) {
+                    std::cerr << "[TRAILING_SPACE] expected: '\\n', input: ' '" << std::endl;
+                    std::exit(1);
+                }
+                else {
                     while(last == ' ')
+                        last = getc();
+                }
+            }
+
+            if(expected_end == '\n' && last == '\r') {
+                if constexpr(CHECK_WIN_LINEBREAK) {
+                    std::cerr << "[WIN_LINEBREAK] expected: '\\n', input: '\\r'" << std::endl;
+                    std::exit(1);
+                } else {
+                    while(last == '\r')
                         last = getc();
                 }
             }
 
             if constexpr(CHECK_TOKEN_END)
                 if(last != expected_end) {
-                    std::string ch = (last == '\n' ? "\\n" : std::string(1, last));
-                    std::string ex = (expected_end == '\n' ? "\\n" : std::string(1, expected_end));
                     std::cerr << "unexpected end of token at line " << kl_line_cnt() << std::endl;
-                    std::cerr << "expected: '" << ex << "', input: '" << ch << "'" << std::endl;
+                    std::cerr << "expected: '" << escaped_string(expected_end)
+                        << "', input: '" << escaped_string(last) << "'" << std::endl;
                     std::exit(1);
                 }
 
-            int end = kl_to_read_idx - 1;
             if constexpr(FORMATTER) {
                 kl_tokens.emplace_back(kl_read_buf + start, end - start);
                 kl_separators.push_back(expected_end);
@@ -174,8 +218,14 @@ namespace koi_lib {
 
         void read_expected_char(char expected) {
             char c = getc();
-            if(c != expected)
-                ifc("unexpected char at read_expected_char");
+            if(c != expected) {
+                if constexpr(VALIDATOR) {
+                    std::cerr << "unexpected char at read_expected_char" << std::endl;
+                    std::cerr << "expected: '" << escaped_string(expected) << "', input: '" <<
+                        escaped_string(c) << "'" << std::endl;
+                    std::exit(1);
+                }
+            }
 
             if constexpr(FORMATTER) {
                 kl_tokens.emplace_back(kl_read_buf + kl_to_read_idx - 1, 1);
@@ -193,7 +243,7 @@ namespace koi_lib {
         auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), res); \
         if constexpr(CHECK_WRONG_CONVERSION)                                               \
             if(ec != std::errc() || ptr != s.data() + s.size()) {                          \
-                std::cerr << "wrong conversion at convert_sv, '" << s << "' to " << #type << std::endl;  \
+                std::cerr << "wrong conversion at convert_sv, '" << escaped_string(s) << "' to " << #type << std::endl;  \
                 std::exit(1);                                                 \
             }                                                                 \
         return res;                                                           \
@@ -437,5 +487,15 @@ using namespace koi_lib;
 using namespace std;
 
 int main() {
+    auto [n, k] = readInts<2>();
+    auto arr = readArr(n);
 
+    long long sum = 0, ans = 0;
+    for(int l = 0, r = 0; r < n; r++) {
+        sum += arr[r];
+        while(sum > k && l < r) sum -= arr[l++];
+        if(sum <= k) ans = max(ans, sum);
+    }
+
+    cout << ans;
 }
