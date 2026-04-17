@@ -98,6 +98,7 @@ namespace koi_lib {
         }
 
         bool is_eof() {
+            if(kl_to_read_idx != kl_buf_len) return false;
 #ifdef _WIN32
             DWORD bytes;
             if(!PeekNamedPipe(GetStdHandle(STD_INPUT_HANDLE), nullptr, 0, nullptr,
