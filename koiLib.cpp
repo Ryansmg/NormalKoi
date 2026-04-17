@@ -1,9 +1,9 @@
 /**
  * koiLib by gs24055
- * Version 1.42 (260409)
+ * Version 1.43 (260409)
  */
 
-#define VALIDATOR false
+#define VALIDATOR true
 #define FORMATTER false
 
 /////////////////// 세부 항목 설정
@@ -105,33 +105,13 @@ namespace koi_lib {
                 return true;
             return bytes == 0;
 #else
-            pollfd pfd{};
-            pfd.fd = STDIN_FILENO;
-            pfd.events = POLLIN;
-
-            int r = poll(&pfd, 1, 0);
-            if(r <= 0) return true;
-
-            if(pfd.revents & POLLHUP) return true;
-
-            if(pfd.revents & POLLIN) {
-                char c;
-                ssize_t n = read(STDIN_FILENO, &c, 1);
-                if(n == 0) return true;   // EOF
-                if(n > 0) {
-                    ungetc(c, stdin);     // 문자 복원
-                    return false;
-                }
-            }
-
-            return true;
+            int c = std::cin.get();
+            if(c == EOF) return true;
+            assert("input file is larger than INPUT_BUFFER_SIZE, please increase the buffer."
+                && kl_buf_len < INPUT_BUFFER_SIZE - 1);
+            kl_read_buf[kl_buf_len++] = c;
+            return false;
 #endif
-            // int c = std::cin.get();
-            // if(c == EOF) return true;
-            // assert("input file is larger than INPUT_BUFFER_SIZE, please increase the buffer."
-            //     && kl_buf_len < INPUT_BUFFER_SIZE - 1);
-            // kl_read_buf[kl_buf_len++] = c;
-            // return false;
         }
 
         char peekc() {
@@ -189,7 +169,7 @@ namespace koi_lib {
                     std::exit(1);
                 }
                 else {
-                    while(last == ' ')
+                    while(last == ' ' && is_separator(peekc(), '\n'))
                         last = getc();
                 }
             }
@@ -362,6 +342,22 @@ namespace koi_lib {
             }
         } k_l_i_;
 
+        void init_kl_read_buf_() {
+            int i = kl_to_read_idx;
+            while(!is_eof()) getc();
+            kl_to_read_idx = i;
+        }
+
+        void write_kl_read_buf_(std::ostream& out = std::cout) {
+            for(int i = 0; i < kl_buf_len; i++) out << kl_read_buf[i];
+        }
+
+        void kl_ib_wr_e1_() {
+            init_kl_read_buf_();
+            write_kl_read_buf_(std::cerr);
+            std::exit(1);
+        }
+
 #if FORMATTER
         struct null_stream {
             template <typename T>
@@ -505,7 +501,6 @@ using namespace koi_lib;
 #include <numeric>
 using namespace std;
 using i64 = long long;
-
 
 int main() {
 
