@@ -1,9 +1,9 @@
 /**
  * koiLib by gs24055
- * Version 1.41 (260409)
+ * Version 1.42 (260409)
  */
 
-#define VALIDATOR true
+#define VALIDATOR false
 #define FORMATTER false
 
 /////////////////// 세부 항목 설정
@@ -32,6 +32,7 @@
 #include <cassert>
 #include <charconv>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -55,11 +56,13 @@ namespace koi_lib {
 #undef CHECK_TRAILING_INPUT
 #undef CHECK_TRAILING_SPACE
 #undef CHECK_WRONG_CONVERSION
+#undef CHECK_WIN_LINEBREAK
 #define CHECK_NON_EOL_EOF false
 #define CHECK_TOKEN_END false
 #define CHECK_TRAILING_INPUT false
 #define CHECK_TRAILING_SPACE false
 #define CHECK_WRONG_CONVERSION false
+#define CHECK_WIN_LINEBREAK false
 #endif
 
         char kl_read_buf[INPUT_BUFFER_SIZE];
@@ -411,10 +414,10 @@ namespace koi_lib {
     }
 
     read_multiple(int, Int) // NOLINT(*-pro-type-member-init)
-    read_multiple(long long, Long)
-    read_multiple(double, Double)
-    read_multiple(long double, LDouble)
-    read_multiple(std::string, Str)
+    read_multiple(long long, Long) // NOLINT(*-pro-type-member-init)
+    read_multiple(double, Double) // NOLINT(*-pro-type-member-init)
+    read_multiple(long double, LDouble) // NOLINT(*-pro-type-member-init)
+    read_multiple(std::string, Str) // NOLINT(*-pro-type-member-init)
 
     template <typename Type = long long>
     Type read(bool readEol = false) {
@@ -492,7 +495,17 @@ using namespace koi_lib;
 /** koiLib end **/
 #pragma endregion
 
+#include <algorithm>
+#include <cmath>
+#include <stack>
+#include <utility>
+#include <queue>
+#include <set>
+#include <map>
+#include <numeric>
 using namespace std;
+using i64 = long long;
+
 
 int main() {
 
