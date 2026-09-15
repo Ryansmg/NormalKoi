@@ -1,6 +1,6 @@
 /**
  * koiLib by gs24055
- * Version 1.43 (260409)
+ * Version 1.44 (260915)
  */
 
 #define VALIDATOR true
@@ -10,7 +10,7 @@
 // 토큰의 구분자가 예상과 같은지 확인 ("10\n" <-> "10 ")
 #define CHECK_TOKEN_END true
 // `\n` 대신 `\r\n`이 사용되었는지 확인
-#define CHECK_WIN_LINEBREAK true
+#define CHECK_WIN_LINEBREAK false
 // 줄의 끝이 " \n"으로 끝나는지 확인
 #define CHECK_TRAILING_SPACE true
 ///////////////////
@@ -27,6 +27,30 @@
 // "1.05"를 정수로 변환하는 등 잘못된 변환을 확인
 #define CHECK_WRONG_CONVERSION true
 ///////////////////
+
+
+/// 컴파일 시 FORCE_VALIDATOR, FORCE_FORMATTER, FORCE_SOLUTION 옵션을 넣으면 타입이 강제됨.
+#ifdef FORCE_VALIDATOR
+#undef VALIDATOR
+#define VALIDATOR true
+#undef FORMATTER
+#define FORMATTER false
+#endif
+
+#ifdef FORCE_FORMATTER
+#undef VALIDATOR
+#define VALIDATOR true
+#undef FORMATTER
+#define FORMATTER true
+#endif
+
+#ifdef FORCE_SOLUTION
+#undef VALIDATOR
+#define VALIDATOR false
+#undef FORMATTER
+#define FORMATTER false
+#endif
+
 
 #include <array>
 #include <cassert>
@@ -503,6 +527,17 @@ using namespace koi_lib;
 using namespace std;
 using i64 = long long;
 
-int main() {
 
+int main() {
+    i64 n = readInt(true);
+    vector<array<i64, 2>> m(n);
+    for(int i=0; i<n; i++) m[i] = readLongs<2>();
+    sort(m.begin(), m.end(), [&](const array<i64, 2>& a, const array<i64, 2>& b) -> bool {
+        return a[0] - a[1] == b[0] - b[1] ? a[0] + a[1] > b[0] + b[1] : a[0] - a[1] < b[0] - b[1];
+    });
+    vector<array<i64, 2>> ans;
+    for(auto [x, y] : m) {
+        if(ans.empty() || x + y > ans.back()[0] + ans.back()[1]) ans.push_back({x, y});
+    }
+    cout << ans.size();
 }

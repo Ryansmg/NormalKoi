@@ -8,6 +8,7 @@ ac 코드를 기반으로 벨리데이터 및 입력 파일 포매터를 자동 
 
 koiLib.cpp 파일에서 `#pragma endregion` 이후에 문제 풀이 코드를 작성하면 됩니다.
 이때 유의할 점은 입력을 아래에 설명된 함수들을 사용해 받고, 출력은 cout으로 해야 한다는 점입니다.
+이때 `std::cout`이 아니라 `cout`을 사용해야 합니다.
 `printf`, `puts`, `scanf` 등 C-style 입출력은 사용할 수 없습니다.
 
 작성한 코드는 `VALIDATOR`를 `true`로 설정하면 벨리데이터 (겸 ac 코드), `FORMATTER`를 `true`로 설정하면 포매터가 됩니다.  
@@ -42,7 +43,7 @@ koiLib.cpp 파일에서 `#pragma endregion` 이후에 문제 풀이 코드를 �
   - `readInts`, `readLongs`, `readDoubles`, `readLDoubles`, `readStrs`
   
 
-- `read<T1, T2, ...>`
+- `read<T1, T2, ...>()`
   - 서로 다른 타입의 값 여러 개를 입력받는 함수입니다.
   - 값들은 공백으로 구분되어 있고, 마지막엔 줄바꿈이 주어질 때 사용합니다.
   - `std::tuple<T1, T2, ...>`를 반환합니다.
@@ -58,7 +59,7 @@ koiLib.cpp 파일에서 `#pragma endregion` 이후에 문제 풀이 코드를 �
 - `get(args...)`
   - 인자로 주어진 변수들에 입력을 받습니다.
   - 값들은 공백으로 구분되어 있고, 마지막엔 줄바꿈이 주어질 때 사용합니다.
-  - `auto [a, b, c] = read<Ta, Tb, Tc>;` 와 `Ta a; Tb b; Tc c; get(a, b, c);`가 동일
+  - `auto [a, b, c] = read<Ta, Tb, Tc>();` 와 `Ta a; Tb b; Tc c; get(a, b, c);`가 동일
   
 
 - `readEof()`

@@ -7,3 +7,4 @@ add_executable(NormalKoi koiLib.cpp)
 set(CMAKE_CXX_FLAGS "-g -DLOCAL -Wall -lm -static")
 
 add_executable(gitignored_sort_time_check gitignored/sort_time_check.cpp)
+add_executable(noFeatures noFeatures.cpp)
