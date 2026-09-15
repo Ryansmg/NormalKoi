@@ -1,6 +1,6 @@
 /**
  * koiLib by gs24055
- * Version 1.44 (260915)
+ * Version 1.45 (260915)
  */
 
 #define VALIDATOR true
@@ -204,8 +204,11 @@ namespace koi_lib {
                     std::cerr << "[WIN_LINEBREAK] expected: '\\n', input: '\\r'" << std::endl;
                     std::exit(1);
                 } else {
-                    while(last == '\r')
-                        last = getc();
+                    if(peekc() != '\n') {
+                        std::cerr << "[CARRIAGE_RETURN] expected: '\\r\\n', input: '\\r'" << std::endl;
+                        std::exit(1);
+                    }
+                    last = getc();
                 }
             }
 
@@ -483,9 +486,9 @@ namespace koi_lib {
         impl::eof_explicitly_checked = true;
 #if VALIDATOR && CHECK_TRAILING_INPUT
         assert(impl::is_eof());
+#endif
 #if FORMATTER
         std::exit(0);  // 정답 계산 등을 생략
-#endif
 #endif
     }
 
